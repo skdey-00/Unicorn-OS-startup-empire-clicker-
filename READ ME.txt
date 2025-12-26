@@ -1,0 +1,14 @@
+Unicorn Clicker is a high-stakes incremental "startup simulator" where you play the role of a solo founder building a tech giant from your bedroom.
+
+The game blends traditional clicker mechanics with resource management and technical constraints. Unlike standard idle games where you can click infinitely, your "server" (CPU) generates heat every time you deploy code. If you push too fast without upgrading your infrastructure, your system will overheat and crash, forcing a 10-second blackout where you earn nothing.
+
+Where the main pillars of what you must do to make your start-up grow is
+The Hustle: Manually "push code" to gain your first few hundred users while managing your revenue.
+
+The Team: Unlock a workforce of Workers and Interns to automate growth, though the Intern provides a cheap, temporary boost that requires careful timing.
+
+Scaling: Balance your User Capacity by buying server racks. If your capacity is full, your growth halts until you expand your backend.
+
+Marketing: Reach the "Series A" milestone of 500 users to unlock the Marketing Department. This allows you to upgrade campaigns that exponentially increase the power of every click.
+
+As you progress, the costs of hiring and servers inflate, forcing you to strategically choose between increasing your manual "click power" or investing in a massive, automated server farm. The goal is simple: scale your user base as high as possible without burning the building down.
