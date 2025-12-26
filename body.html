@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Startup Empire: Unicorn Clicker</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --neon-green: #00ff88;
+            --neon-blue: #00d4ff;
+            --neon-purple: #bc13fe;
+            --danger: #ff4757;
+            --dark-bg: #050608;
+            --panel-bg: rgba(20, 22, 28, 0.8);
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            background-image: radial-gradient(circle at 50% 50%, #11151c 0%, #050608 100%);
+            color: #e0e0e0;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 320px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(15px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        .logo { font-weight: 800; font-size: 1.5rem; color: var(--neon-green); display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .stat-header { display: flex; align-items: center; gap: 8px; color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px; }
+        .stat-value { font-size: 1.6rem; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+        .locked-feature {
+            filter: grayscale(100%);
+            opacity: 0.6;
+        }
+
+        .unlocked-feature {
+                filter: grayscale(0%);
+                opacity: 1;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+        }
+
+        /* Server Bars */
+        .bar-bg { background: #1a1a1a; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        #server-bar { width: 0%; height: 100%; transition: width 0.1s; }
+
+        /* Main Game Area */
+        #main-game { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; transition: filter 0.3s; }
+        .click-area { cursor: pointer; transition: transform 0.05s; color: var(--neon-green); }
+        .click-area:active { transform: scale(0.95); }
+        
+        /* Floating Text */
+        .code-snippet {
+        position: absolute;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        font-weight: bold;
+         pointer-events: none; /* Crucial: so the text doesn't block your next click */
+         z-index: 9999;
+        animation: floatUp 1s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-120px); opacity: 0; }
+        }
+
+        .upgrade-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+        .upgrade-btn:hover:not(:disabled) { background: var(--neon-purple); border-color: white; }
+        .upgrade-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="logo"><i data-lucide="zap"></i> UNICORN OS</div>
+
+        <div class="stat-card">
+            <div class="stat-header"><i data-lucide="banknote"></i> Revenue</div>
+            <div class="stat-value" id="money-display" style="color: var(--neon-green)">$0.00</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header"><i data-lucide="users"></i> Users / Capacity</div>
+            <div class="stat-value" style="font-size: 1.2rem;">
+                <span id="user-display">0</span> / <span id="cap-display">50</span>
+            </div>
+        </div>
+
+        <div class="stat-card" style="border-color: rgba(255, 71, 87, 0.3);">
+            <div class="stat-header" style="color: var(--danger)"><i data-lucide="flame"></i> CPU HEAT</div>
+            <div class="stat-value" id="heat-display" style="font-size: 1.2rem; color: var(--danger)">0%</div>
+            <div class="bar-bg">
+                <div id="server-bar" style="background: var(--danger);"></div>
+            </div>
+            <p id="crash-msg" style="color: var(--danger); font-size: 0.7rem; margin-top: 5px; display:none; font-weight:bold;">OVERHEATED! WAIT 10S...</p>
+        </div>
+
+    <div class="stat-card">
+    <div class="stat-header"><i data-lucide="briefcase"></i> Workforce & Scaling</div>
+    
+    <button class="upgrade-btn" onclick="buyServer()" id="server-btn">Buy Rack ($25)</button>
+
+    <div id="worker-lock" style="color: #555; font-size: 0.75rem; text-align: center; margin-top: 10px;">
+        🔒 Reach 100 Users for Workers
+    </div>
+    <button class="upgrade-btn" onclick="buyWorker()" id="worker-btn" style="display:none; border-color: var(--neon-purple);">
+        Hire Worker ($50)
+    </button>
+
+    <div id="intern-lock" style="color: #555; font-size: 0.75rem; text-align: center; margin-top: 10px;">
+        🔒 Reach 150 Users for Interns
+    </div>
+    <button class="upgrade-btn" onclick="activateIntern()" id="intern-btn" style="display:none; background: var(--neon-blue); color: #000;">
+        Summon Intern ($10)
+    </button>
+</div>
+<div id="marketing-card" class="stat-card" style="border-top: 2px solid #555;">
+    <div class="stat-header">
+        <i data-lucide="megaphone" size="14"></i> MARKETING DEPT
+    </div>
+    
+    <div id="marketing-content" style="filter: blur(2px); opacity: 0.5; pointer-events: none;">
+        <div style="font-size: 0.8rem; margin: 10px 0;">
+            Multiplier: <span id="click-power" style="color: var(--neon-blue); font-weight: bold;">1</span>x Power
+        </div>
+        <button class="upgrade-btn" onclick="upgradeMarketing()" id="marketing-btn">
+            Upgrade Campaign ($500)
+        </button>
+    </div>
+
+    <div id="marketing-status-msg" style="color: var(--neon-blue); font-size: 0.7rem; margin-top: 8px; text-align: center; font-weight: bold;">
+        🔒 UNLOCKS AT 500 USERS
+    </div>
+</div>
+</div>
+
+
+    <div id="main-game">
+        <div class="click-area" onclick="handleClick(event)">
+            <i data-lucide="terminal" size="160"></i>
+        </div>
+        <p id="status-text" style="margin-top: 20px; color: #555; font-weight: bold; letter-spacing: 2px;">READY TO DEPLOY</p>
+    </div>
+
+<script>
+    lucide.createIcons();
+
+    let game = {
+        money: 0,
+        users: 0,
+        capacity: 150, // Starting smaller for better progression
+        heat: 0,
+        workers: 0,
+        workerCost: 50,
+        internActive: false,
+        internCost: 10,
+        internTimeRemaining: 0,
+        serverCost: 25,
+        isCrashed: false,
+        revenuePerUser: 0.01,
+        clickValue: 1, 
+        marketingCost: 500,
+        marketingUnlockGoal: 500 // Set to 500 to match your unlock text
+    };
+
+    function handleClick(event) {
+        if (game.isCrashed) return;
+        game.heat += 5;
+
+        const phrases = ["git push", "npm start", "pip install", "docker up", "yarn build"];
+        const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+
+        if (game.users < game.capacity) {
+            let amount = game.clickValue || 1;
+            game.users += amount;
+            spawnText(event.clientX, event.clientY, `${randomPhrase} (+${amount})`, "var(--neon-green)");
+        } else {
+            spawnText(event.clientX, event.clientY, "CAPACITY FULL!", "var(--danger)");
+        }
+
+        if (game.heat >= 100) triggerCrash();
+        updateUI();
+    }
+
+    function spawnText(x, y, text, color) {
+        const el = document.createElement('div');
+        el.className = 'code-snippet';
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        el.style.color = color;
+        el.style.textShadow = `0 0 10px ${color}`;
+        el.innerText = text;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 1000);
+    }
+
+    function triggerCrash() {
+        game.isCrashed = true;
+        game.heat = 100;
+        document.getElementById('crash-msg').style.display = "block";
+        document.getElementById('main-game').style.filter = "blur(5px) grayscale(1)";
+        
+        setTimeout(() => {
+            game.isCrashed = false;
+            game.heat = 0;
+            document.getElementById('crash-msg').style.display = "none";
+            document.getElementById('main-game').style.filter = "none";
+            updateUI();
+        }, 10000);
+    }
+
+    function buyServer() {
+        if (game.money >= game.serverCost) {
+            game.money -= game.serverCost;
+            game.capacity += 100;
+            game.serverCost = Math.floor(game.serverCost * 1.4);
+            updateUI();
+        }
+    }
+
+    function buyWorker() {
+        if (game.money >= game.workerCost) {
+            game.money -= game.workerCost;
+            game.workers++;
+            game.workerCost = Math.floor(game.workerCost * 1.5);
+            updateUI();
+        }
+    }
+
+    function activateIntern() {
+        if (game.money >= game.internCost && !game.internActive) {
+            game.money -= game.internCost;
+            game.internActive = true;
+            setTimeout(() => {
+                game.internActive = false;
+                updateUI();
+            }, 300000); // 5 minutes
+            updateUI();
+        }
+    }
+
+    function upgradeMarketing() {
+        if (game.money >= game.marketingCost && game.users >= game.marketingUnlockGoal) {
+            game.money -= game.marketingCost;
+            game.clickValue *= 2; 
+            game.marketingCost *= 2.5; 
+            game.marketingUnlockGoal += 1500; 
+            updateUI();
+            spawnText(window.innerWidth/2, window.innerHeight/2, "VIRAL CAMPAIGN!", "var(--neon-blue)");
+        }
+    }
+
+    function updateUI() {
+        // Essential Displays
+        document.getElementById('money-display').innerText = "$" + (game.money || 0).toFixed(2);
+        document.getElementById('user-display').innerText = Math.floor(game.users || 0);
+        document.getElementById('cap-display').innerText = game.capacity;
+        document.getElementById('heat-display').innerText = Math.floor(game.heat || 0) + "%";
+        document.getElementById('server-bar').style.width = (game.heat || 0) + "%";
+        document.getElementById('server-btn').innerText = `Buy Rack ($${game.serverCost})`;
+
+        // Workforce Logic
+        const wLock = document.getElementById('worker-lock');
+        const wBtn = document.getElementById('worker-btn');
+        if (game.users >= 100) {
+            if(wLock) wLock.style.display = "none";
+            if(wBtn) {
+                wBtn.style.display = "block";
+                wBtn.innerText = `Hire Worker ($${game.workerCost})`;
+                wBtn.disabled = game.money < game.workerCost;
+            }
+        }
+
+        const iLock = document.getElementById('intern-lock');
+        const iBtn = document.getElementById('intern-btn');
+        if (game.users >= 150) {
+            if(iLock) iLock.style.display = "none";
+            if(iBtn) {
+                iBtn.style.display = "block";
+                iBtn.disabled = game.money < game.internCost || game.internActive;
+                iBtn.innerText = game.internActive ? "INTERN WORKING" : `Summon Intern ($${game.internCost})`;
+            }
+        }
+
+        // Marketing Logic (One declaration only)
+        const mCard = document.getElementById('marketing-card');
+        const mContent = document.getElementById('marketing-content');
+        const mMsg = document.getElementById('marketing-status-msg');
+        const mBtn = document.getElementById('marketing-btn');
+
+        if (mCard && mContent && mMsg) {
+            if (game.users >= 500) {
+                mCard.style.borderColor = "var(--neon-blue)";
+                mContent.style.filter = "none";
+                mContent.style.opacity = "1";
+                mContent.style.pointerEvents = "auto";
+                
+                if (game.users < game.marketingUnlockGoal) {
+                    mMsg.innerText = `NEXT UPGRADE AT ${game.marketingUnlockGoal} USERS`;
+                    mMsg.style.color = "#555";
+                    mBtn.disabled = true;
+                } else {
+                    mMsg.innerText = "✨ CAMPAIGN READY";
+                    mMsg.style.color = "var(--neon-green)";
+                    mBtn.disabled = game.money < game.marketingCost;
+                }
+            } else {
+                mMsg.innerText = "🔒 UNLOCKS AT 500 USERS";
+                mMsg.style.color = "var(--neon-blue)";
+            }
+            document.getElementById('click-power').innerText = game.clickValue;
+            mBtn.innerText = `Upgrade Campaign ($${Math.floor(game.marketingCost)})`;
+        }
+    }
+
+    setInterval(() => {
+        if (!game.isCrashed && game.heat > 0) game.heat -= 1;
+
+        let growth = (game.workers * 0.2); 
+        if (game.internActive) growth += (0.02 * game.clickValue);
+        
+        if (game.users < game.capacity) {
+            game.users += growth;
+        }
+
+        game.money += (game.users * 0.01) / 10;
+        updateUI();
+    }, 100);
+</script>
+</body>
+</html>
